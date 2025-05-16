@@ -8,5 +8,7 @@ Idea is to take a picture of a receipt or handwritten note --> extract text --> 
 
 
 ## How to Run
+```
 pip install -r requirements.txt
 streamlit run app.py
+```
