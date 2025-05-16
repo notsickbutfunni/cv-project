@@ -7,12 +7,23 @@ import openai
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-def preprocess_image(uploaded_file):
-    image = Image.open(uploaded_file).convert('RGB')
+def preprocess_image(image_data):
+    image = Image.open(image_data).convert("RGB")
     image_np = np.array(image)
-    gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
-    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+
+    gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
+
+    if gray.dtype != np.uint8:
+        gray = gray.astype(np.uint8)
+
+    thresh = cv2.adaptiveThreshold(
+        gray, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY,
+        11, 2
+    )
     return thresh
+
 
 def extract_text(image_np):
     image_pil = Image.fromarray(image_np)
