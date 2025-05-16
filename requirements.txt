@@ -1,6 +1,6 @@
 streamlit
-cv2
-numpy
-openai
 pillow
+openai
 pytesseract
+opencv-python
+numpy
