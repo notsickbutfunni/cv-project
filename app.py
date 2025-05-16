@@ -30,15 +30,14 @@ def extract_text(image_np):
     return pytesseract.image_to_string(image_pil)
 
 def summarizer(text):
-    response  = openai.chat.completions.create(
-        model="gpt-4o-mini",
+    response = openai.chat.completions.create(
+        model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "Summarize this receipt or handwritten note."},
+            {"role": "system", "content": "Summarize the following text."},
             {"role": "user", "content": text}
         ]
     )
-
-    return response['choices'][0]['message']['content'] 
+    return response.choices[0].message.content
 
 st.title("Receipt & Handwritten Note Summarizer")
 
@@ -47,7 +46,7 @@ uploaded_file = st.file_uploader("Upload receipt/note image", type=["png", "jpg"
 if uploaded_file:
     st.image(uploaded_file, caption='Uploaded file', use_column_width=True)
     preprocessed_image = preprocess_image(uploaded_file)
-    st.image(uploaded_file, caption='Preprocessed', use_column_width=True)
+    st.image(preprocessed_image, caption='Preprocessed', use_column_width=True)
 
     with st.spinner("Running OCR..."):
         extracted_text = extract_text(preprocessed_image)
@@ -55,6 +54,6 @@ if uploaded_file:
         st.text_area("OCR Output", extracted_text, height=200)
 
     with st.spinner("Summarizing..."):
-        summary = summarizer(extract_text)
+        summary = summarizer(extracted_text)  
         st.subheader('Summary: ')
         st.write(summary)
