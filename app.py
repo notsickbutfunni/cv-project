@@ -29,15 +29,30 @@ def extract_text(image_np):
     image_pil = Image.fromarray(image_np)
     return pytesseract.image_to_string(image_pil)
 
+#def summarizer(text):
+#    response = openai.chat.completions.create(
+#        model="gpt-3.5-turbo",
+#        messages=[
+#            {"role": "system", "content": "Summarize the following text."},
+#            {"role": "user", "content": text}
+#        ]
+#    )
+#    return response.choices[0].message.content
+
 def summarizer(text):
-    response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "Summarize the following text."},
-            {"role": "user", "content": text}
-        ]
-    )
-    return response.choices[0].message.content
+    try:
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Summarize the following text."},
+                {"role": "user", "content": text}
+            ]
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        st.error(f"OpenAI API call failed: {e}")
+        return ""
+
 
 st.title("Receipt & Handwritten Note Summarizer")
 
