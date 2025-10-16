@@ -35,8 +35,7 @@ cd receipt-summarizer
 ```
 2. **Install dependencies**
 ```bash
-git clone https://github.com/yourusername/receipt-summarizer.git
-cd receipt-summarizer
+pip install -r requirements.txt
 ```
 3. **Install Tesseract OCR**
 
