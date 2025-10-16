@@ -1,20 +1,17 @@
 import streamlit as st
-import pytesseract
 import cv2
+import re
 from PIL import Image
 import numpy as np
-import openai
-
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+import pytesseract
+from transformers import pipeline
 
 def preprocess_image(image_data):
     image = Image.open(image_data).convert("RGB")
     image_np = np.array(image)
 
     gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
-
-    if gray.dtype != np.uint8:
-        gray = gray.astype(np.uint8)
+    gray = cv2.medianBlur(gray, 3) #denoise
 
     thresh = cv2.adaptiveThreshold(
         gray, 255,
@@ -26,32 +23,23 @@ def preprocess_image(image_data):
 
 
 def extract_text(image_np):
+    custom_config = r'--oem 3 --psm 6'
     image_pil = Image.fromarray(image_np)
-    return pytesseract.image_to_string(image_pil)
+    text = pytesseract.image_to_string(image_pil, config=custom_config)
+    return text
 
-#def summarizer(text):
-#    response = openai.chat.completions.create(
-#        model="gpt-3.5-turbo",
-#        messages=[
-#            {"role": "system", "content": "Summarize the following text."},
-#            {"role": "user", "content": text}
-#        ]
-#    )
-#    return response.choices[0].message.content
+summarizer_model = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+
 
 def summarizer(text):
-    try:
-        response = openai.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "Summarize the following text."},
-                {"role": "user", "content": text}
-            ]
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        st.error(f"OpenAI API call failed: {e}")
-        return ""
+    text = text[:2000]  
+    summary = summarizer_model(text, max_length=130, min_length=30, do_sample=False)
+    return summary[0]['summary_text']
+
+def clean_text(text):
+    text = re.sub(r'[^a-zA-Z0-9\s\.\,\-\%\$]', ' ', text)  # remove weird chars
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
 
 
 st.title("Receipt & Handwritten Note Summarizer")
@@ -59,16 +47,24 @@ st.title("Receipt & Handwritten Note Summarizer")
 uploaded_file = st.file_uploader("Upload receipt/note image", type=["png", "jpg", "jpeg"])
 
 if uploaded_file:
-    st.image(uploaded_file, caption='Uploaded file', use_column_width=True)
+    st.image(uploaded_file, caption='Uploaded file', use_container_width =True)
     preprocessed_image = preprocess_image(uploaded_file)
-    st.image(preprocessed_image, caption='Preprocessed', use_column_width=True)
+    st.image(preprocessed_image, caption='Preprocessed', use_container_width =True)
 
     with st.spinner("Running OCR..."):
         extracted_text = extract_text(preprocessed_image)
+        cleaned_text = clean_text(extracted_text)
         st.subheader("Extracted text: ")
-        st.text_area("OCR Output", extracted_text, height=200)
+        st.text_area("OCR Output", cleaned_text, height=200)
 
-    with st.spinner("Summarizing..."):
-        summary = summarizer(extracted_text)  
-        st.subheader('Summary: ')
-        st.write(summary)
+
+    if len(extracted_text.strip()) < 50:
+        st.warning("⚠️ Could not detect enough readable text. Try uploading a clearer image.")
+    else:
+        with st.spinner("Summarizing..."):
+            st.write("Extracted text preview:")
+            st.write(extracted_text[:500])
+        
+            summary = summarizer(extracted_text)  
+            st.subheader('Summary: ')
+            st.write(summary)
